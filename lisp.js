@@ -45,7 +45,8 @@ function parseParens (input) {
 function parseInScope (input, scope) {
   let [f, rem] = getNextArg(input)
   if (scope[f] != null) return [scope[f], rem]
-  return scope['parent'] !== null ? parseInScope(input, scope['parent']) : null
+  console.log(scope['parent'])
+  return scope['parent'] != null ? parseInScope(input, scope['parent']) : null
 }
 
 let specialForms = ['if', 'define', 'lambda']
@@ -64,8 +65,8 @@ function parseIdentifiers (input) {
   return f === null ? null : [f, rem]
 }
 
-const parseValue = (x, scope) => parseSpecial(x) || parseNumber(x) || 
-  parseBool(x) || parseNull(x) || parseString(x) || parseParens(x) || 
+const parseValue = (x, scope) => parseSpecial(x) || parseNumber(x) ||
+  parseBool(x) || parseNull(x) || parseString(x) || parseParens(x) ||
   parseInScope(x, scope) || parseIdentifiers(x)
 
 function getNextArg (input) {
@@ -82,24 +83,34 @@ function getAllArgs (input, scope, acc) {
   return getAllArgs(remm, scope, [...acc, arg])
 }
 
-function evalExpr (fn, args, scope) {
+function evalExpr (fn, rstring, scope) {
   if (!isSpecial(fn)) {
-    return fn(args)
+    let [args, rem] = getAllArgs(rstring, scope, [])
+    return [fn(args), rem]
   } else {
     switch (fn) {
-      case 'define' : 
+      case 'define' :
+        let [args, rem] = getAllArgs(rstring, scope, [])
+        if (args.length !== 2) throw SyntaxError('Invalid Arity of define', args[0])
+        else { globalEnv[args[0]] = args[1]; return [args[0], rem] }
     }
   }
 }
 
-function parseExpr (input, scope) {
+function parseExpr (input, scope = globalEnv) {
   let [v, rem] = parseValue(parseSpace(input), scope)
   if (v === '(') {
     let [fn, remm] = parseValue(parseSpace(rem), scope)
-    let [args, r] = getAllArgs(remm, scope, [])
-    return [evalExpr(fn, args), r]
+    // let [args, r] = getAllArgs(remm, scope, [])
+    // return [evalExpr(fn, args), r]
+    return evalExpr(fn, remm, scope)
   } else { return [v, rem] }
 }
 
-console.log(parseExpr('12', globalEnv))
-console.log(parseExpr('(+ (+ 3 3) -4 56 35)', globalEnv))
+const parse = x => parseExpr(x)[0]
+
+// console.log(parse('12'))
+// console.log(parse('(+ (+ 3 3) -4 56 35)'))
+parse('(define a 20)')
+console.log(parse('a'))
+console.log(parse('(+ 30 a)'))
