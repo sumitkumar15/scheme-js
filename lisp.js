@@ -18,7 +18,7 @@ function parseNull (input) {
 }
 
 function parseNumber (input) {
-let m = input.match(/^[+-]?\d*\.?\d+(?:[eE][-+]?\d+)?\s*?/)
+  let m = input.match(/^[+-]?\d*\.?\d+(?:[eE][-+]?\d+)?\s*?/)
   if (m == null) return null
   return [parseFloat(m[0]), input.slice(m[0].length)]
 }
@@ -43,20 +43,34 @@ function parseParens (input) {
 }
 
 function parseInScope (input, scope) {
-  // if (scope['parent'] == null) {
-
-  // }
   let [f, rem] = getNextArg(input)
   if (scope[f] != null) return [scope[f], rem]
+  return scope['parent'] !== null ? parseInScope(input, scope['parent']) : null
 }
-const parseValue = (x, scope) => parseNumber(x) || parseBool(x) ||
-  parseNull(x) || parseString(x) || parseParens(x) || parseInScope(x, scope)
+
+let specialForms = ['if', 'define', 'lambda']
+function isSpecial (fn) {
+  return specialForms.some(x => x === fn)
+}
+
+function parseSpecial (input) {
+  let [f, rem] = getNextArg(input)
+  if (isSpecial(f)) return [f, rem]
+  return null
+}
+
+function parseIdentifiers (input) {
+  let [f, rem] = getNextArg(input)
+  return f === null ? null : [f, rem]
+}
+
+const parseValue = (x, scope) => parseSpecial(x) || parseNumber(x) || 
+  parseBool(x) || parseNull(x) || parseString(x) || parseParens(x) || 
+  parseInScope(x, scope) || parseIdentifiers(x)
 
 function getNextArg (input) {
-  // let m = input.match(/^\w+$/)
   let noSpace = parseSpace(input)
   let m = noSpace.match(/[^\s)]+/)
-  console.log('m', m)
   if (m == null) console.log('Invalid expression at ', input.slice(0, 20))
   else return [m[0], noSpace.slice(m[0].length)]
 }
@@ -68,26 +82,24 @@ function getAllArgs (input, scope, acc) {
   return getAllArgs(remm, scope, [...acc, arg])
 }
 
-function isSpecial (fn) {
-  let sp = ['if', 'define', 'lambda']
-  return sp.some(x => x === fn)
-}
-
 function evalExpr (fn, args, scope) {
   if (!isSpecial(fn)) {
     return fn(args)
+  } else {
+    switch (fn) {
+      case 'define' : 
+    }
   }
 }
 
 function parseExpr (input, scope) {
   let [v, rem] = parseValue(parseSpace(input), scope)
   if (v === '(') {
-    console.log(rem)
-    let [fn, remm] = parseValue(rem, scope)
+    let [fn, remm] = parseValue(parseSpace(rem), scope)
     let [args, r] = getAllArgs(remm, scope, [])
     return [evalExpr(fn, args), r]
   } else { return [v, rem] }
 }
 
 console.log(parseExpr('12', globalEnv))
-console.log(parseExpr('(+ (+ 3 3) -4 56 86 35)', globalEnv))
+console.log(parseExpr('(+ (+ 3 3) -4 56 35)', globalEnv))
