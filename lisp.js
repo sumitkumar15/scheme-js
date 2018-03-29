@@ -1,10 +1,23 @@
+function relational (f, args) {
+  if (args.length === 0) throw SyntaxError('Incorrect arity for' + f)
+  if (args.length === 1) return true
+  for (let i = 0; i < args.length - 1; i++) {
+    if (f(args[i], args[i + 1]) === false) return false
+  }
+  return true
+}
+
 let standardEnv = {
   '+': args => args.reduce((a, b) => a + b),
   '-': args => args.reduce((a, b) => a - b),
   '*': args => args.reduce((a, b) => a * b),
-  '/': args => args.reduce((a, b) => a / b)
+  '/': args => args.reduce((a, b) => a / b),
+  '>': args => relational((x, y) => x > y, args),
+  '<': args => relational((x, y) => x < y, args),
+  '>=': args => relational((x, y) => x >= y, args),
+  '<=': args => relational((x, y) => x <= y, args),
+  '=': args => relational((x, y) => x === y, args)
 }
-
 let globalEnv = standardEnv
 
 function parseBool (input) {
@@ -86,7 +99,7 @@ function getExpr (input) {
   const helper = (x, cnt, acc) => {
     if (x[0] === '(') return helper(x.slice(1), cnt + 1, acc + x[0])
     else if (x[0] === ')' && cnt !== 0) return helper(x.slice(1), cnt - 1, acc + x[0])
-    else if (x[0] === ')' && cnt === 0) return [acc + x[0], x.slice(1)]
+    else if (x[0] === ')' && cnt === 0) return [acc, x]
     else if (cnt === 0) return [acc, x]
     else return helper(x.slice(1), cnt, acc + x[0])
   }
@@ -95,13 +108,19 @@ function getExpr (input) {
   return getNextArg(p)
 }
 
-function parseEvalLetForm (input, scope) {
+function parseBindBody (input) {
   let noSpace = parseSpace(input)
   let [bindStr, rem] = getExpr(noSpace)
   let [bodyStr, remm] = getExpr(rem)
+  if (parseSpace(remm)[0] !== ')') {
+    throw SyntaxError('No Closing parenthesis after' + bodyStr)
+  } else return [bindStr, bodyStr, remm]
+}
 
+function parseEvalLetForm (input, scope) {
+  let [bindStr, bodyStr, remm] = parseBindBody(input)
   const extractBindings = (x, acc) => {
-    if (x === '') return acc
+    if (x === ')') return acc
     let b = getExpr(x.slice(1))
     let [id, bind] = parseIdentifiers(b[0].slice(1, b[0].length - 1))
     acc[id] = parseExpr(bind, scope)[0]
@@ -109,7 +128,7 @@ function parseEvalLetForm (input, scope) {
   }
   let newScope = extractBindings(bindStr, {})
   newScope['parent'] = scope
-  return [parseExpr(bodyStr, newScope), remm]
+  return [parseExpr(bodyStr, newScope)[0], remm]
 }
 
 function evalExpr (fn, rstring, scope) {
@@ -144,13 +163,3 @@ function parseExpr (input, scope = globalEnv) {
 }
 
 const parse = x => parseExpr(x)[0]
-
-// console.log(parse('12'))
-// console.log(parse('(+ (+ 3 3) -4 56 35)'))
-// parse('(define a 20)')
-// console.log(parse('a'))
-// console.log(parse('(+ 30 a)'))
-// console.log(parse('(if #t 4 5)'))
-// parse('(define Simba 55)')
-// console.log(parse('Simba'))
-console.log(parse('(let ((x 10) (y 50)) (+ x y))'))
