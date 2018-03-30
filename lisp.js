@@ -113,8 +113,8 @@ function parseBindBody (input) {
   let [bindStr, rem] = getExpr(noSpace)
   let [bodyStr, remm] = getExpr(rem)
   if (parseSpace(remm)[0] !== ')') {
-    throw SyntaxError('No Closing parenthesis after' + bodyStr)
-  } else return [bindStr, bodyStr, remm]
+    throw SyntaxError('No Closing parenthesis after  ' + bodyStr)
+  } else return [bindStr, bodyStr, remm.slice(1)]
 }
 
 function parseEvalLetForm (input, scope) {
@@ -139,16 +139,23 @@ function evalExpr (fn, rstring, scope) {
     switch (fn) {
       case 'define' : {
         let [args, rem] = getAllArgs(rstring, scope, [])
-        if (args.length !== 2) throw SyntaxError('Invalid Arity for define', rstring.slice(0, 20))
+        if (args.length !== 2) {
+          throw SyntaxError('Invalid Arity for define', rstring.slice(0, 20))
+        }
         else { globalEnv[args[0]] = args[1]; return [args[0], rem] }
       }
       case 'if' : {
         let [args, rem] = getAllArgs(rstring, scope, [])
-        if (args.length !== 3) throw SyntaxError('Invalid Arity for if', rstring.slice(0, 20))
+        if (args.length !== 3) {
+          throw SyntaxError('Invalid Arity for if', rstring.slice(0, 20))
+        }
         return [args[0] ? args[1] : args[2], rem]
       }
       case 'let' : {
         return parseEvalLetForm(rstring, scope)
+      }
+      case 'lambda' {
+        
       }
     }
   }
@@ -162,4 +169,15 @@ function parseExpr (input, scope = globalEnv) {
   } else { return [v, rem] }
 }
 
-const parse = x => parseExpr(x)[0]
+const parse = x => {
+  try {
+    let [res, rem] = parseExpr(x)
+    if (rem !== '') throw SyntaxError('Invalid expression at  ' + rem)
+    return res
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+console.log(parse('(define x  100))'))
+console.log(parse('(let ((y 50)) x'))
