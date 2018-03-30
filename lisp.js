@@ -141,8 +141,7 @@ function evalExpr (fn, rstring, scope) {
         let [args, rem] = getAllArgs(rstring, scope, [])
         if (args.length !== 2) {
           throw SyntaxError('Invalid Arity for define', rstring.slice(0, 20))
-        }
-        else { globalEnv[args[0]] = args[1]; return [args[0], rem] }
+        } else { globalEnv[args[0]] = args[1]; return [args[0], rem] }
       }
       case 'if' : {
         let [args, rem] = getAllArgs(rstring, scope, [])
@@ -154,9 +153,10 @@ function evalExpr (fn, rstring, scope) {
       case 'let' : {
         return parseEvalLetForm(rstring, scope)
       }
-      case 'lambda' {
+      // case 'lambda' : {
+      //   let [bindStr, bodyStr, rem] = parseBindBody(rstring)
         
-      }
+      // }
     }
   }
 }
@@ -179,5 +179,6 @@ const parse = x => {
   }
 }
 
-console.log(parse('(define x  100))'))
-console.log(parse('(let ((y 50)) x'))
+module.exports = {
+  parse: parse
+}
