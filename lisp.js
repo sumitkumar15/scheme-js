@@ -196,7 +196,7 @@ function evalExpr (fn, rstring, scope) {
 function parseExpr (input, scope = globalEnv) {
   let [v, rem] = parseValue(parseSpace(input), scope)
   if (v === '(') {
-    let [fn, remm] = parseValue(parseSpace(rem), scope)
+    let [fn, remm] = parseExpr(parseSpace(rem), scope)
     return evalExpr(fn, remm, scope)
   } else { return [v, rem] }
 }
