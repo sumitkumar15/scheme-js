@@ -131,10 +131,42 @@ function parseEvalLetForm (input, scope) {
   return [parseExpr(bodyStr, newScope)[0], remm]
 }
 
+class Lambda {
+  constructor (bindstr, bodystr, scope) {
+    const b = bindstr.slice(1, bindstr.length - 1)
+    let args = b.split(' ').map(x => x.trim())
+    this.param = args
+    this.body = bodystr
+    this.scope = scope
+  }
+
+  bindArgs (args) {
+    if (this.param.length !== args.length) {
+      throw SyntaxError('Invalid number of arguments')
+    }
+    let temp = {}
+    for (let i = 0; i < this.param.length; i++) {
+      temp[this.param[i]] = args[i]
+    }
+    temp['parent'] = this.scope
+    this.scope = temp
+  }
+
+  invoke (args) {
+    this.bindArgs(args)
+    return parseExpr(this.body, this.scope)[0]
+  }
+}
+
 function evalExpr (fn, rstring, scope) {
   if (!isSpecial(fn)) {
-    let [args, rem] = getAllArgs(rstring, scope, [])
-    return [fn(args), rem]
+    if (fn instanceof Lambda) {
+      let [args, rem] = getAllArgs(rstring, scope, [])
+      return [fn.invoke(args), rem]
+    } else {
+      let [args, rem] = getAllArgs(rstring, scope, [])
+      return [fn(args), rem]
+    }
   } else {
     switch (fn) {
       case 'define' : {
@@ -153,10 +185,10 @@ function evalExpr (fn, rstring, scope) {
       case 'let' : {
         return parseEvalLetForm(rstring, scope)
       }
-      // case 'lambda' : {
-      //   let [bindStr, bodyStr, rem] = parseBindBody(rstring)
-        
-      // }
+      case 'lambda' : {
+        let [bindStr, bodyStr, rem] = parseBindBody(rstring)
+        return [new Lambda(bindStr, bodyStr, scope), rem]
+      }
     }
   }
 }
